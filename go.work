@@ -1,0 +1,7 @@
+go 1.21.4
+
+use (
+	./week-1/day-1/excercise
+	./week-1/day-1/preview
+	./week-1/day-1/ungraded-2
+)
