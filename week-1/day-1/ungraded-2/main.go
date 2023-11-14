@@ -1,10 +1,13 @@
 package main
 
 import (
-	"ungraded-2/config"
-	"ungraded-2/helpers"
-	"ungraded-2/routes"
 	"os"
+	"ungraded-2/config"
+	"ungraded-2/controllers"
+	"ungraded-2/helpers"
+	"ungraded-2/repository"
+	"ungraded-2/routes"
+
 	"github.com/go-playground/validator/v10"
 
 	_ "github.com/joho/godotenv/autoload"
@@ -13,13 +16,16 @@ import (
 )
 
 func main() {
-	config.ConnectDB()
 	e := echo.New()
 	e.Validator = &helpers.CustomValidator{NewValidator: validator.New()}
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-
-	routes.UserRoute(e)
+	
+	db := config.ConnectDB().Database("ungraded2DB").Collection("employees")
+	employeeRepository := repository.NewEmployeeRepository(db)
+	employeeController := controllers.NewEmployeeController(employeeRepository)
+	
+	routes.UserRoute(e, employeeController)
 	
 	e.Logger.Fatal(e.Start(":" + os.Getenv("PORT")))
 }

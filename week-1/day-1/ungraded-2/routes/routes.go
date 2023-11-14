@@ -6,11 +6,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func UserRoute(e *echo.Echo) {
-	e.POST("/employees", controllers.CreateUser)
-	e.GET("/employees/:userId", controllers.GetUserById)
-	e.GET("/employees", controllers.GetAllUser)
-	e.GET("/employees/salary", controllers.GetAllUserSortedBySalary)
-	e.PUT("/employees/:userId", controllers.UpdateUser)
-	e.DELETE("/employees/:userId", controllers.DeleteUser)
+func UserRoute(e *echo.Echo, employeeController controllers.EmployeeController) {
+	e.POST("/employees", employeeController.CreateUser)
+	e.GET("/employees/:userId", employeeController.GetUserById)
+	e.GET("/employees", employeeController.GetAllUser)
+	e.GET("/employees/salary", employeeController.GetAllUserSortedBySalary)
+	e.PUT("/employees/:userId", employeeController.UpdateUser)
+	e.DELETE("/employees/:userId", employeeController.DeleteUser)
 }
