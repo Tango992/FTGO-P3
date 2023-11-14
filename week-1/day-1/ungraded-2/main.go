@@ -21,8 +21,10 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	
-	db := config.ConnectDB().Database("ungraded2DB").Collection("employees")
-	employeeRepository := repository.NewEmployeeRepository(db)
+	db := config.ConnectDB().Database("ungraded2DB")
+	employeeCollection := db.Collection("employees")
+	
+	employeeRepository := repository.NewEmployeeRepository(employeeCollection)
 	employeeController := controllers.NewEmployeeController(employeeRepository)
 	
 	routes.UserRoute(e, employeeController)
