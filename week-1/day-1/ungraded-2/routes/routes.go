@@ -12,5 +12,5 @@ func UserRoute(e *echo.Echo) {
 	e.GET("/employees", controllers.GetAllUser)
 	e.GET("/employees/salary", controllers.GetAllUserSortedBySalary)
 	e.PUT("/employees/:userId", controllers.UpdateUser)
-	e.DELETE("/employees", controllers.DeleteUser)
+	e.DELETE("/employees/:userId", controllers.DeleteUser)
 }

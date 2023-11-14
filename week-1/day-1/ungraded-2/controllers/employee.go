@@ -16,7 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var UserCollection = config.ConnectDB().Database("ungraded2DB").Collection("employees")
+var employeeCollection = config.ConnectDB().Database("ungraded2DB").Collection("employees")
 
 func CreateUser(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10 *time.Second)
@@ -32,15 +32,16 @@ func CreateUser(c echo.Context) error {
 	}
 
 	indexEmail := mongo.IndexModel{
-		Keys: bson.D{{Key: "email", Value: 1}, {Key: "unique", Value: true}},
+		Keys: bson.D{{Key: "email", Value: 1}},
+		Options: options.Index().SetUnique(true),
 	}
 	
-	if _, err := UserCollection.Indexes().CreateOne(ctx, indexEmail); err != nil {
-		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "index", Data: &echo.Map{"data": err.Error()}})
+	if _, err := employeeCollection.Indexes().CreateOne(ctx, indexEmail); err != nil {
+		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "Index Error", Data: &echo.Map{"error": err.Error()}})
 	}
 	
-	if _, err := UserCollection.InsertOne(ctx, user); err != nil {
-		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": err.Error()}})
+	if _, err := employeeCollection.InsertOne(ctx, user); err != nil {
+		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "Insertion Error", Data: &echo.Map{"error": err.Error()}})
 	}
 	
 	return c.JSON(http.StatusCreated, echo.Map{
@@ -58,9 +59,9 @@ func GetAllUser(c echo.Context) error {
 		return GetUsersPaginated(c, page)
 	}
 	
-	res, err := UserCollection.Find(ctx, echo.Map{})
+	res, err := employeeCollection.Find(ctx, echo.Map{})
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": err.Error()}})
+		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"error": err.Error()}})
 	}
 	defer res.Close(ctx)
 
@@ -69,7 +70,7 @@ func GetAllUser(c echo.Context) error {
 	for res.Next(ctx) {
 		var user models.User
 		if err := res.Decode(&user); err != nil {
-			return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": err.Error()}})
+			return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"error": err.Error()}})
 		}
 		users = append(users, user)
 	}
@@ -85,17 +86,17 @@ func GetUsersPaginated(c echo.Context, pageTmp string) error {
 	
 	page, err := strconv.Atoi(pageTmp)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"data": err.Error()}})
+		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"error": err.Error()}})
 	} else if page < 1 {
-		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"data": "page must be greater than 0"}})
+		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"error": "page must be greater than 0"}})
 	}
 
 	skip := 2 * (int64(page) - 1)
 	opts := options.Find().SetLimit(2).SetSkip(skip)
 	
-	res, err := UserCollection.Find(ctx, echo.Map{}, opts)
+	res, err := employeeCollection.Find(ctx, echo.Map{}, opts)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": err.Error()}})
+		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"error": err.Error()}})
 	}
 	defer res.Close(ctx)
 
@@ -104,7 +105,7 @@ func GetUsersPaginated(c echo.Context, pageTmp string) error {
 	for res.Next(ctx) {
 		var user models.User
 		if err := res.Decode(&user); err != nil {
-			return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": err.Error()}})
+			return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"error": err.Error()}})
 		}
 		users = append(users, user)
 	}
@@ -119,9 +120,9 @@ func GetAllUserSortedBySalary(c echo.Context) error {
 	defer cancel()
 	options := options.Find().SetSort(bson.D{{Key: "salary", Value: 1}})
 	
-	res, err := UserCollection.Find(ctx, echo.Map{}, options)
+	res, err := employeeCollection.Find(ctx, echo.Map{}, options)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": err.Error()}})
+		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"error": err.Error()}})
 	}
 	defer res.Close(ctx)
 
@@ -130,7 +131,7 @@ func GetAllUserSortedBySalary(c echo.Context) error {
 	for res.Next(ctx) {
 		var user models.User
 		if err := res.Decode(&user); err != nil {
-			return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": err.Error()}})
+			return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"error": err.Error()}})
 		}
 		users = append(users, user)
 	}
@@ -148,17 +149,17 @@ func GetUserById(c echo.Context) error {
 	userId := c.Param("userId")
 	objectId, err := primitive.ObjectIDFromHex(userId)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"data": err.Error()}})
+		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"error": err.Error()}})
 	}
 
 	var user models.User
-	res := UserCollection.FindOne(ctx, echo.Map{"_id": objectId})
+	res := employeeCollection.FindOne(ctx, echo.Map{"_id": objectId})
 	if res.Err() != nil {
-		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": res.Err().Error()}})
+		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"error": res.Err().Error()}})
 	}
 	
 	if err := res.Decode(&user); err != nil {
-		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"data": err.Error()}})
+		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"error": err.Error()}})
 	}
 
 	return c.JSON(http.StatusOK, echo.Map{
@@ -172,7 +173,7 @@ func UpdateUser(c echo.Context) error {
 
 	var user models.User
 	if err := c.Bind(&user); err != nil {
-		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"data": err.Error()}})
+		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"error": err.Error()}})
 	}
 
 	if err := c.Validate(&user); err != nil {
@@ -182,7 +183,7 @@ func UpdateUser(c echo.Context) error {
 	userId := c.Param("userId")
 	objectId, err := primitive.ObjectIDFromHex(userId)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"data": err.Error()}})
+		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"error": err.Error()}})
 	}
 
 	updateData := bson.M{
@@ -195,9 +196,9 @@ func UpdateUser(c echo.Context) error {
 		},
 	}
 
-	res, err := UserCollection.UpdateOne(ctx, bson.M{"_id": objectId}, updateData)
+	res, err := employeeCollection.UpdateOne(ctx, bson.M{"_id": objectId}, updateData)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": err.Error()}})
+		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"error": err.Error()}})
 	}
 	
 	return c.JSON(http.StatusOK, echo.Map{
@@ -209,24 +210,15 @@ func DeleteUser(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10 *time.Second)
 	defer cancel()
 
-	var user models.User
-	if err := c.Bind(&user); err != nil {
-		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"data": err.Error()}})
-	}
-
-	if err := c.Validate(&user); err != nil {
-		return err
-	}
-
 	userId := c.Param("userId")
 	objectId, err := primitive.ObjectIDFromHex(userId)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"data": err.Error()}})
+		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"error": err.Error()}})
 	}
 	
-	res, err := UserCollection.DeleteOne(ctx, bson.M{"_id": objectId})
+	res, err := employeeCollection.DeleteOne(ctx, bson.M{"_id": objectId})
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": err.Error()}})
+		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"error": err.Error()}})
 	}
 	
 	return c.JSON(http.StatusOK, echo.Map{
