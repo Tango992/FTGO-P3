@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var UserCollection = config.ConnectDB().Database("ungraded2DB").Collection("employees")
@@ -72,6 +73,32 @@ func GetAllUser(c echo.Context) error {
 	})
 }
 
+func GetAllUserSortedBySalary(c echo.Context) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10 *time.Second)
+	defer cancel()
+	options := options.Find().SetSort(bson.D{{Key: "salary", Value: 1}})
+	
+	res, err := UserCollection.Find(ctx, echo.Map{}, options)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": err.Error()}})
+	}
+	defer res.Close(ctx)
+
+	users := []models.User{}
+	
+	for res.Next(ctx) {
+		var user models.User
+		if err := res.Decode(&user); err != nil {
+			return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": err.Error()}})
+		}
+		users = append(users, user)
+	}
+	
+	return c.JSON(http.StatusOK, echo.Map{
+		"data": users,
+	})
+}
+
 func GetUserById(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10 *time.Second)
 	defer cancel()
@@ -96,7 +123,6 @@ func GetUserById(c echo.Context) error {
 		"data": user,
 	})
 }
-
 
 func UpdateUser(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10 *time.Second)

@@ -10,6 +10,7 @@ func UserRoute(e *echo.Echo) {
 	e.POST("/employees", controllers.CreateUser)
 	e.GET("/employees/:userId", controllers.GetUserById)
 	e.GET("/employees", controllers.GetAllUser)
+	e.GET("/employees/salary", controllers.GetAllUserSortedBySalary)
 	e.PUT("/employees/:userId", controllers.UpdateUser)
 	e.DELETE("/employees", controllers.DeleteUser)
 }
