@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"net/http"
-	"strconv"
 	"time"
 	"ungraded-2/config"
 	"ungraded-2/helpers"
@@ -11,6 +10,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var UserCollection = config.ConnectDB().Database("ungraded2DB").Collection("employees")
@@ -27,15 +28,22 @@ func CreateUser(c echo.Context) error {
 	if err := c.Validate(&user); err != nil {
 		return err
 	}
+
+	indexEmail := mongo.IndexModel{
+		Keys: bson.D{{Key: "email", Value: 1}},
+	}
 	
-	res, err := UserCollection.InsertOne(ctx, user)
-	if err != nil {
+	if _, err := UserCollection.Indexes().CreateOne(ctx, indexEmail); err != nil {
+		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": err.Error()}})
+	}
+	
+	if _, err := UserCollection.InsertOne(ctx, user); err != nil {
 		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": err.Error()}})
 	}
 	
 	return c.JSON(http.StatusCreated, echo.Map{
 		"message": "Registered",
-		"data": res,
+		"data": user,
 	})
 }
 
@@ -68,14 +76,14 @@ func GetUserById(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10 *time.Second)
 	defer cancel()
 
-	userIdTmp := c.Param("userId")
-	userId, err := strconv.Atoi(userIdTmp)
+	userId := c.Param("userId")
+	objectId, err := primitive.ObjectIDFromHex(userId)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"data": err.Error()}})
 	}
-	
+
 	var user models.User
-	res := UserCollection.FindOne(ctx, echo.Map{"_id": userId})
+	res := UserCollection.FindOne(ctx, echo.Map{"_id": objectId})
 	if res.Err() != nil {
 		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": res.Err().Error()}})
 	}
@@ -103,21 +111,23 @@ func UpdateUser(c echo.Context) error {
 		return err
 	}
 
-	userIdTmp := c.Param("userId")
-	userId, err := strconv.Atoi(userIdTmp)
+	userId := c.Param("userId")
+	objectId, err := primitive.ObjectIDFromHex(userId)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"data": err.Error()}})
 	}
-	
+
 	updateData := bson.M{
 		"$set": bson.M{
 			"name": user.Name,
 			"address": user.Address,
 			"email": user.Email,
+			"salary": user.Salary,
+			"department": user.Department,
 		},
 	}
 
-	res, err := UserCollection.UpdateOne(ctx, bson.M{"_id": userId}, updateData)
+	res, err := UserCollection.UpdateOne(ctx, bson.M{"_id": objectId}, updateData)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": err.Error()}})
 	}
@@ -140,13 +150,13 @@ func DeleteUser(c echo.Context) error {
 		return err
 	}
 
-	userIdTmp := c.Param("userId")
-	userId, err := strconv.Atoi(userIdTmp)
+	userId := c.Param("userId")
+	objectId, err := primitive.ObjectIDFromHex(userId)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, helpers.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"data": err.Error()}})
 	}
 	
-	res, err := UserCollection.DeleteOne(ctx, bson.M{"_id": userId})
+	res, err := UserCollection.DeleteOne(ctx, bson.M{"_id": objectId})
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, helpers.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": err.Error()}})
 	}
