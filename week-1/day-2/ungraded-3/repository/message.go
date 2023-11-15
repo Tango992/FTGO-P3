@@ -7,6 +7,6 @@ import (
 
 type Message interface {
 	Post(*models.Message) *utils.ErrResponse
-	GetById(string) *utils.ErrResponse
-	GetBySenderReceiver(string, string) *utils.ErrResponse
+	GetById(string) (models.Message, *utils.ErrResponse)
+	GetBySenderReceiver(string, string) ([]models.Message, *utils.ErrResponse)
 }

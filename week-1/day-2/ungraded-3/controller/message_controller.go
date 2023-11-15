@@ -48,13 +48,43 @@ func (mc MessageController) Post(c echo.Context) error {
 }
 
 func (mc MessageController) GetById(c echo.Context) error {
-	return nil
+	messageId := c.Param("id")
+
+	message, err := mc.Repository.GetById(messageId)
+	if err != nil {
+		return c.JSON(err.Format())
+	}
+
+	return c.JSON(http.StatusCreated, echo.Map{
+		"message": "Get message by id",
+		"data": message,
+	})
 }
 
 func (mc MessageController) GetBySender(c echo.Context) error {
-	return nil
+	senderEmail := c.Param("senderEmail")
+
+	messages, err := mc.Repository.GetBySenderReceiver("sender", senderEmail)
+	if err != nil {
+		return c.JSON(err.Format())
+	}
+	
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "Get message by sender",
+		"data": messages,
+	})
 }
 
 func (mc MessageController) GetByReceiver(c echo.Context) error {
-	return nil
+	receiverEmail := c.Param("receiverEmail")
+
+	messages, err := mc.Repository.GetBySenderReceiver("receiver", receiverEmail)
+	if err != nil {
+		return c.JSON(err.Format())
+	}
+	
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "Get message by receiver",
+		"data": messages,
+	})
 }
