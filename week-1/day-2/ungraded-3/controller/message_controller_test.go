@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,8 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var (
@@ -47,7 +50,10 @@ func TestPost(t *testing.T) {
 	c := e.NewContext(req, w)
 
 	mockRepository := NewMockRepository()
-	mockRepository.Mock.On("Post", message).Return(message)
+	mockRepository.Mock.On("Post", message).Return(message).Run(func(args mock.Arguments) {
+		message := args.Get(0).(*models.Message)
+		message.ID = primitive.NewObjectID()
+	})
 
 	messageController := NewMessageController(&mockRepository)
 	messageController.Post(c)
@@ -61,4 +67,6 @@ func TestPost(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.NotEmpty(t, responseBody)
 	assert.Equal(t, responseBody["message"].(string), "Message posted")
+	
+	fmt.Println(responseBody)
 }
