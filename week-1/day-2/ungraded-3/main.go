@@ -7,11 +7,12 @@ import (
 	"ungraded-3/helpers"
 	"ungraded-3/repository"
 	"ungraded-3/routes"
+	"ungraded-3/scheduler"
 
 	"github.com/go-playground/validator/v10"
+	_ "github.com/joho/godotenv/autoload"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	_ "github.com/joho/godotenv/autoload"
 )
 
 func main() {
@@ -26,6 +27,9 @@ func main() {
 	messageRepository := repository.NewMessageRepository(messageCollection)
 	messageController := controller.NewMessageController(messageRepository)
 	routes.UserRoute(e, messageController)
+
+	schedule := scheduler.New(messageCollection)
+	schedule.StarWorker()
 	
 	e.Logger.Fatal(e.Start(":" + os.Getenv("PORT")))
 }
