@@ -6,4 +6,5 @@ use (
 	./week-1/day-1/ungraded-2
 	./week-1/day-2/ungraded-3
 	./week-1/day-3/cron-demo
+	./week-2/day-1/preview
 )

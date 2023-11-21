@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package order;
+
+option go_package = "services/order";
+
+service OrderService {
+  rpc GetOder(GetOrderRequest) returns (Order);
+  rpc GetOrders(EmptyRequest) returns (GetOrdersResponse);
+}
+
+message Order {
+  string id = 1;
+  string name = 2;
+  int64 subtotal= 3;
+  repeated Item items = 4;
+}
+
+message Item {
+  string id = 1;
+  int32 quantity = 2;
+  int32 price = 3;
+}
+
+message EmptyRequest {}
+
+message GetOrderRequest {
+  string id = 1;
+}
+
+message GetOrdersResponse {
+  repeated Order orders = 1;
+}
