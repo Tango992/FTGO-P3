@@ -2,10 +2,17 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
+	"os"
+	"time"
 	pb "ungraded_5/internal/product"
+	"ungraded_5/middlewares"
 	"ungraded_5/models"
+
+	"github.com/dgrijalva/jwt-go"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
 
 	_ "github.com/joho/godotenv/autoload"
 	"go.mongodb.org/mongo-driver/bson"
@@ -112,6 +119,14 @@ func (s *Server) DeleteProduct(ctx context.Context, data *pb.DeleteProductReques
 }
 
 func main() {
+	token, err := generateToken()
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+
+    fmt.Println("JWT Token:", token)
+	
 	clientOption := options.Client().ApplyURI("mongodb://localhost:27017")
 	client, err := mongo.Connect(context.Background(), clientOption)
 	if err != nil {
@@ -131,10 +146,29 @@ func main() {
 		log.Fatal(err)
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(grpc_auth.UnaryServerInterceptor(middlewares.JWTAuth)))
 	pb.RegisterProductServiceServer(grpcServer, &Server{collection: collection})
 	log.Println("Server is running on port: 50051")
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatal("Failed to server gRPC:", err)
 	}
+}
+
+func generateToken() (string, error) {
+    // Atur klaim JWT Anda
+    claims := jwt.StandardClaims{
+        Subject:   "testuser",                           // Subjek/token penerima
+        ExpiresAt: time.Now().Add(1 * time.Hour).Unix(), // Waktu kedaluwarsa token (1 jam dari sekarang)
+        IssuedAt:  time.Now().Unix(),                    // Waktu pembuatan token
+    }
+
+    // Buat token dengan menggunakan metode HMAC dan kunci rahasia
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    secretKey := []byte(os.Getenv("JWT_SECRET")) // Ganti dengan kunci rahasia Anda
+    tokenString, err := token.SignedString(secretKey)
+    if err != nil {
+        return "", fmt.Errorf("failed to generate JWT: %v", err)
+    }
+
+    return tokenString, nil
 }

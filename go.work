@@ -7,4 +7,7 @@ use (
 	./week-1/day-2/ungraded-3
 	./week-1/day-3/cron-demo
 	./week-2/day-1/preview
+	./week-2/day-1/test_proto
+	./week-2/day-2/grpc_excercise
+	./week-2/day-2/ungraded-5
 )
