@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	pb "ungraded_5/internal/product"
+	"ungraded_5/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -41,12 +42,22 @@ func (s *Server) GetProducts(ctx context.Context, data *emptypb.Empty) (*pb.Prod
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Internal error: %v", err)
 	}
+	defer cursor.Close(context.Background())
 	
 	products := []*pb.Product{}
-	if err := cursor.All(context.TODO(), &products); err != nil {
-		return nil, status.Errorf(codes.Internal, "Internal error: %v", err)		
-	}
+	for cursor.Next(context.Background()) {
+		var data models.Product
+		if err := cursor.Decode(&data); err != nil {
+			return nil, status.Errorf(codes.Internal, "Internal error: %v", err)		
+		}
 
+		product := &pb.Product{
+			Id: data.Id.Hex(),
+			Name: data.Name,
+			Stock: uint32(data.Stock),
+		}
+		products = append(products, product)
+	}
 	productsResp := &pb.Products{Products: products}
 	return productsResp, nil
 }
@@ -57,7 +68,16 @@ func (s *Server) UpdateProduct(ctx context.Context, data *pb.UpdateProductReques
 		return nil, status.Errorf(codes.InvalidArgument, err.Error())
 	}
 
-	if _, err := s.collection.UpdateOne(ctx, bson.M{"_id": objectId}, bson.M{"$set": data}); err != nil {
+	updateData := models.Product{
+		Name: data.Name,
+		Stock: uint(data.Stock),
+	}
+
+	res := s.collection.FindOneAndUpdate(ctx, bson.M{"_id": objectId}, bson.M{"$set": updateData})
+	if err := res.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, status.Errorf(codes.NotFound, err.Error())
+		}
 		return nil, status.Errorf(codes.Internal, "Internal error: %v", err)
 	}
 	return &emptypb.Empty{}, nil
@@ -71,15 +91,21 @@ func (s *Server) DeleteProduct(ctx context.Context, data *pb.DeleteProductReques
 
 	result := s.collection.FindOneAndDelete(ctx, bson.M{"_id": objectId})
 	if err := result.Err(); err != nil {
-		if err == mongo.ErrNilDocument {
-			return nil, status.Errorf(codes.InvalidArgument, err.Error())
+		if err == mongo.ErrNoDocuments {
+			return nil, status.Errorf(codes.NotFound, err.Error())
 		}
 		return nil, status.Errorf(codes.Internal, "Internal error: %v", err)
 	}
 
-	var product *pb.Product
-	if err := result.Decode(&product); err != nil {
+	var productTmp models.Product
+	if err := result.Decode(&productTmp); err != nil {
 		return nil, status.Errorf(codes.Internal, "Internal error: %v", err)
+	}
+
+	product := &pb.Product{
+		Id: productTmp.Id.Hex(),
+		Name: productTmp.Name,
+		Stock: uint32(productTmp.Stock),
 	}
 	return product, nil
 }
@@ -97,7 +123,7 @@ func main() {
 		}
 	}()
 	
-	collection := client.Database("test_grpc_db").Collection("users")
+	collection := client.Database("ungraded5_db").Collection("products")
 
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
