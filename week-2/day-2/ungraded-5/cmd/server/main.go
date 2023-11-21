@@ -7,6 +7,7 @@ import (
 	pb "ungraded_5/internal/product"
 	"ungraded_5/models"
 
+	_ "github.com/joho/godotenv/autoload"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
