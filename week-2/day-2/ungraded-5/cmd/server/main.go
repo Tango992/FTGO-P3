@@ -6,7 +6,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"time"
 	pb "ungraded_5/internal/product"
 	"ungraded_5/middlewares"
 	"ungraded_5/models"
@@ -147,6 +146,7 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(grpc_auth.UnaryServerInterceptor(middlewares.JWTAuth)))
+	// grpcServer := grpc.NewServer()
 	pb.RegisterProductServiceServer(grpcServer, &Server{collection: collection})
 	log.Println("Server is running on port: 50051")
 	if err := grpcServer.Serve(lis); err != nil {
@@ -155,20 +155,15 @@ func main() {
 }
 
 func generateToken() (string, error) {
-    // Atur klaim JWT Anda
     claims := jwt.StandardClaims{
-        Subject:   "testuser",                           // Subjek/token penerima
-        ExpiresAt: time.Now().Add(1 * time.Hour).Unix(), // Waktu kedaluwarsa token (1 jam dari sekarang)
-        IssuedAt:  time.Now().Unix(),                    // Waktu pembuatan token
+        Subject:   "testuser",
     }
 
-    // Buat token dengan menggunakan metode HMAC dan kunci rahasia
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-    secretKey := []byte(os.Getenv("JWT_SECRET")) // Ganti dengan kunci rahasia Anda
+    secretKey := []byte(os.Getenv("JWT_SECRET"))
     tokenString, err := token.SignedString(secretKey)
     if err != nil {
         return "", fmt.Errorf("failed to generate JWT: %v", err)
     }
-
     return tokenString, nil
 }

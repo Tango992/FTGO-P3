@@ -12,9 +12,10 @@ import (
 func JWTAuth(ctx context.Context) (context.Context, error) {
 	token, err := grpc_auth.AuthFromMD(ctx, "bearer")
 	if err != nil {
+		fmt.Println(token)
 		return nil, fmt.Errorf("Couldn't get token : %v", err)
 	}
-
+	
 	claims := &jwt.StandardClaims{}
 	tokenObj, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("JWT_SECRET")), nil

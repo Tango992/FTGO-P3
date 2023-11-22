@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"ungraded_5/config"
 	"ungraded_5/controller"
+	_ "github.com/joho/godotenv/autoload"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
@@ -15,10 +16,11 @@ type CustomValidator struct {
 }
 
 func main() {
+	redisClient := config.InitCache()
 	conn, client := config.InitGrpcClient()
 	defer conn.Close()
 
-	productController := controller.NewProductController(client)
+	productController := controller.NewProductController(client, redisClient)
 
 	e := echo.New()
 	e.Validator = &CustomValidator{validator: validator.New()}
@@ -29,13 +31,13 @@ func main() {
 	e.GET("/products", productController.GetAll)
 	e.PUT("/products/:id", productController.Update)
 	e.DELETE("/products/:id", productController.Delete)
-	
+
 	e.Logger.Fatal(e.Start(":8080"))
 }
 
 func (cv *CustomValidator) Validate(i interface{}) error {
 	if err := cv.validator.Struct(i); err != nil {
-	  return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	return nil
-  }
+}

@@ -10,4 +10,5 @@ use (
 	./week-2/day-1/test_proto
 	./week-2/day-2/grpc_excercise
 	./week-2/day-2/ungraded-5
+	./week-2/day-3/redis-excercise
 )
