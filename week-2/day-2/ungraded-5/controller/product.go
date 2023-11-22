@@ -9,7 +9,6 @@ import (
 	"ungraded_5/models"
 
 	grpcMetadata "google.golang.org/grpc/metadata"
-
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -52,7 +51,7 @@ func (p ProductController) Create(c echo.Context) error {
 func (p ProductController) GetAll(c echo.Context) error {
 	productsStr, err := p.Redis.Get(context.TODO(), "products").Result()
 	if err == redis.Nil {
-		
+
 		ctx := grpcMetadata.AppendToOutgoingContext(c.Request().Context(), "authorization", "Bearer "+ os.Getenv("GRPC_AUTH"))
 		res, err := p.Client.GetProducts(ctx, &emptypb.Empty{})
 		if err != nil {
