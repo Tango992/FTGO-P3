@@ -18,10 +18,10 @@ import (
 type ProductController struct {
 	Client pb.ProductServiceClient
 	Redis *redis.Client
-	Mb service.MessageBrokerService
+	Mb service.MessageBroker
 }
 
-func NewProductController(client pb.ProductServiceClient, redis *redis.Client, mb service.MessageBrokerService) ProductController {
+func NewProductController(client pb.ProductServiceClient, redis *redis.Client, mb service.MessageBroker) ProductController {
 	return ProductController{
 		Client: client,
 		Redis: redis,

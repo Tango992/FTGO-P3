@@ -9,17 +9,17 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-type MessageBrokerService struct {
+type MessageBroker struct {
 	Ch *amqp.Channel
 }
 
-func NewMessageBrokerService(ch *amqp.Channel) MessageBrokerService {
-	return MessageBrokerService{
+func NewMessageBroker(ch *amqp.Channel) MessageBroker {
+	return MessageBroker{
 		Ch: ch,
 	}
 }
 
-func (m MessageBrokerService) PublishMessage(message string) error {
+func (m MessageBroker) PublishMessage(message string) error {
 	q, err := m.Ch.QueueDeclare(
 		"ungraded_5", // name
 		false,        // durable

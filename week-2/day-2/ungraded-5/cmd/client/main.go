@@ -24,7 +24,7 @@ func main() {
 
 	redisClient := config.InitCache()
 
-	messageBrokerService := service.NewMessageBrokerService(ch)
+	messageBrokerService := service.NewMessageBroker(ch)
 	productController := controller.NewProductController(grpcClient, redisClient, messageBrokerService)
 
 	e := echo.New()

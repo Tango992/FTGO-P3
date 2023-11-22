@@ -1,2 +1,2 @@
 proto:
-	protoc --go_out=. --go-grpc_out=. pb/*.proto
+	protoc --go_out=. --go-grpc_out=. proto/*.proto
