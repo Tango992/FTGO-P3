@@ -1,9 +1,11 @@
 package main
 
 import (
-	"net/http"
+	"excercise-mongo/helpers"
 	"ungraded_5/config"
 	"ungraded_5/controller"
+	"ungraded_5/service"
+
 	_ "github.com/joho/godotenv/autoload"
 
 	"github.com/go-playground/validator/v10"
@@ -11,19 +13,22 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
-type CustomValidator struct {
-	validator *validator.Validate
-}
 
 func main() {
-	redisClient := config.InitCache()
-	conn, client := config.InitGrpcClient()
+	mbConn, ch := config.InitMessageBroker()
+	defer ch.Close()
+	defer mbConn.Close()
+	
+	conn, grpcClient := config.InitGrpcClient()
 	defer conn.Close()
 
-	productController := controller.NewProductController(client, redisClient)
+	redisClient := config.InitCache()
+
+	messageBrokerService := service.NewMessageBrokerService(ch)
+	productController := controller.NewProductController(grpcClient, redisClient, messageBrokerService)
 
 	e := echo.New()
-	e.Validator = &CustomValidator{validator: validator.New()}
+	e.Validator = &helpers.CustomValidator{NewValidator: validator.New()}
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
@@ -33,11 +38,4 @@ func main() {
 	e.DELETE("/products/:id", productController.Delete)
 
 	e.Logger.Fatal(e.Start(":8080"))
-}
-
-func (cv *CustomValidator) Validate(i interface{}) error {
-	if err := cv.validator.Struct(i); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-	return nil
 }

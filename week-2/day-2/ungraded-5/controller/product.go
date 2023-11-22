@@ -7,22 +7,25 @@ import (
 	"os"
 	pb "ungraded_5/internal/product"
 	"ungraded_5/models"
+	"ungraded_5/service"
 
-	grpcMetadata "google.golang.org/grpc/metadata"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
+	grpcMetadata "google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type ProductController struct {
 	Client pb.ProductServiceClient
 	Redis *redis.Client
+	Mb service.MessageBrokerService
 }
 
-func NewProductController(client pb.ProductServiceClient, redis *redis.Client) ProductController {
+func NewProductController(client pb.ProductServiceClient, redis *redis.Client, mb service.MessageBrokerService) ProductController {
 	return ProductController{
 		Client: client,
 		Redis: redis,
+		Mb: mb,
 	}
 }
 
@@ -38,6 +41,10 @@ func (p ProductController) Create(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}
 
+	if err := p.Mb.PublishMessage("User created product"); err != nil {
+		return err
+	}
+	
 	if err := p.TriggerCache(); err != nil {
 		return err
 	}
@@ -70,6 +77,10 @@ func (p ProductController) GetAll(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}
 
+	if err := p.Mb.PublishMessage("User getting all products"); err != nil {
+		return err
+	}
+	
 	var productsDatas []models.Product
 	if err := json.Unmarshal([]byte(productsStr), &productsDatas); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": err.Error()})
@@ -94,6 +105,10 @@ func (p ProductController) Update(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}
 
+	if err := p.Mb.PublishMessage("User updated a product"); err != nil {
+		return err
+	}
+	
 	if err := p.TriggerCache(); err != nil {
 		return err
 	}
@@ -112,6 +127,10 @@ func (p ProductController) Delete(c echo.Context) error {
 	res, err := p.Client.DeleteProduct(ctx, &requestData)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+
+	if err := p.Mb.PublishMessage("User deleted a product"); err != nil {
+		return err
 	}
 
 	if err := p.TriggerCache(); err != nil {
