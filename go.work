@@ -13,4 +13,5 @@ use (
 	./week-2/day-3/rabbitmq-excercise/consume
 	./week-2/day-3/rabbitmq-excercise/publish
 	./week-2/day-3/redis-excercise
+	./week-2/day-4/pooling-excercise
 )
